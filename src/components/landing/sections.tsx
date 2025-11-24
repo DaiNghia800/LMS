@@ -127,9 +127,9 @@ export const TeamSection = () => {
 
 // --- FOOTER SECTION ---
 export const Footer = () => (
-  <footer className="border-t border-[#ffffff]/10 bg-[#050c04] pt-16 pb-8 px-6">
-    <div className="max-w-7xl mx-auto pt-8 text-center text-gray-600 text-sm">
-      © 2025 LMS Pro. Built by DaiNghia.
+  <footer className="border-t border-[#ffffff]/10 bg-[#050c04] pt-8 pb-8 px-6">
+    <div className="max-w-7xl mx-auto text-center text-gray-600 text-sm">
+      © 2025 YLearning. Built by DaiNghia800.
     </div>
   </footer>
 );

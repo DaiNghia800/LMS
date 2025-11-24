@@ -2,7 +2,7 @@ import { ArrowRight, BookOpen, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
 export const Hero = () => (
-  <section className="relative pt-40 pb-20 px-6 overflow-hidden">
+  <section className="relative xs:pt-40 pt-32 pb-20 px-6 overflow-hidden">
     {/* Background Glow Effect */}
     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#43602A] opacity-20 blur-[120px] rounded-full pointer-events-none" />
     

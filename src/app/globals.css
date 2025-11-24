@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- MÀU CHỦ ĐẠO (THEO ẢNH BẠN GỬI) --- */
+    
+    /* Nền chính: Màu Be Vàng (#D9CCAC) */
+    --background: 43 33% 76%;
+    
+    /* Chữ chính: Xanh Rêu (#43602A) */
+    --foreground: 92 39% 27%;
+
+    /* Card: Dùng màu Be sáng hơn xíu (#ECE5D3) để nổi bật trên nền Be Vàng */
+    --card: 43 35% 88%;
+    --card-foreground: 92 39% 27%;
+
+    --popover: 43 35% 88%;
+    --popover-foreground: 92 39% 27%;
+
+    /* Nút bấm chính (Primary): Xanh Rêu */
+    --primary: 92 39% 27%;
+    --primary-foreground: 43 33% 90%; /* Chữ trên nút màu trắng kem */
+
+    /* Nút phụ (Secondary): Màu Xanh Rêu nhạt hơn */
+    --secondary: 92 30% 85%;
+    --secondary-foreground: 92 39% 27%;
+
+    --muted: 92 20% 70%;
+    --muted-foreground: 92 39% 27%;
+
+    --accent: 92 30% 85%;
+    --accent-foreground: 92 39% 27%;
+
+    --destructive: 0 60% 40%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 92 39% 27%; /* Viền màu xanh rêu */
+    --input: 92 39% 27%;
+    --ring: 92 39% 27%;
+
+    --radius: 0.5rem;
+  }
+
+  /* Dark Mode giữ nguyên màu đen ngầu */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.data-\[state\=ready\]\:bg-blue-600[data-state="ready"] {
+    --tw-bg-opacity: 1;
+    background-color: hsl(var(--primary))!important;
+}

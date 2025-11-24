@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  
+  serverExternalPackages: ["@uploadthing/mime-types"],
+} as any; 
 
 export default nextConfig;

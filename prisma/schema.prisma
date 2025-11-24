@@ -1,0 +1,206 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Bảng User (Giáo viên & Học sinh)
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(STUDENT) // Mặc định là học sinh
+  
+  // Dành cho NextAuth (Google Login)
+  accounts      Account[]
+  sessions      Session[]
+
+  // Quan hệ nghiệp vụ
+  createdClasses Class[]       @relation("TeacherClasses") 
+  enrollments    Enrollment[]  
+  submissions    Submission[]  
+  comments       Comment[]    
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+// 2. Các bảng cần thiết cho NextAuth hoạt động (Đừng sửa)
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// 3. Bảng Lớp học
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  inviteCode  String   @unique 
+  
+  teacherId   String
+  teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
+
+  members     Enrollment[] 
+  assignments Assignment[] 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 4. Bảng Ghi danh
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  classId   String
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId]) 
+}
+
+// 5. Bảng Bài tập
+model Assignment {
+  id          String    @id @default(cuid())
+  title       String
+  content     String?   @db.Text 
+  attachUrl   String?   
+  dueDate     DateTime? 
+  fileUrl     String?
+  fileType    String?
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  submissions Submission[]
+  comments    Comment[] 
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  assignmentId  String
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  text          String   @db.Text // Nội dung câu hỏi
+  type          QuestionType      // Loại câu hỏi
+  answers       Answer[]
+  // Media (Ảnh/Audio) đính kèm
+  mediaUrl      String?  
+  mediaType     MediaType? 
+
+  // Dành cho trắc nghiệm
+  options       String[] // Mảng các đáp án ["A. ...", "B. ..."]
+  correctAnswer String?  // Đáp án đúng (VD: "A")
+  
+  points        Int      @default(1) // Điểm số
+  createdAt     DateTime @default(now())
+}
+
+// 3. Định nghĩa các Enum (Kiểu dữ liệu cố định)
+enum QuestionType {
+  MULTIPLE_CHOICE
+  ESSAY
+}
+
+enum MediaType {
+  AUDIO
+  IMAGE
+  NONE
+}
+
+// 6. Bảng Bài nộp
+model Submission {
+  id           String   @id @default(cuid())
+  fileUrl      String?  
+  textResponse String?  @db.Text 
+  
+  grade        Float?   
+  feedback     String?  @db.Text 
+  gradedAt     DateTime? 
+  answers      Answer[]
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  studentId    String
+  student      User     @relation(fields: [studentId], references: [id])
+
+  submittedAt  DateTime @default(now())
+  
+  @@unique([assignmentId, studentId]) 
+}
+
+// 7. Bảng Comment
+model Comment {
+  id           String   @id @default(cuid())
+  content      String
+  
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+}
+
+model Answer {
+  id           String   @id @default(cuid())
+  
+  value        String   @db.Text // Lưu đáp án học sinh chọn (VD: "A" hoặc "Nội dung tự luận")
+  isCorrect    Boolean? // Đúng hay sai (Dùng cho trắc nghiệm)
+  aiFeedback   String?  @db.Text
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+}

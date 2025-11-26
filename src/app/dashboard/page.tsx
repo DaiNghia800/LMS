@@ -22,11 +22,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModeToggle } from "@/components/mode-toggle";
 import React from "react";
-
+import { UserNav } from "@/components/user-nav";
+import { Home } from "lucide-react";
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/");
@@ -50,7 +50,6 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background p-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
-        
         {/* HEADER */}
         <div className="flex justify-between items-center">
           <div>
@@ -59,17 +58,16 @@ export default async function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild title="Back to Home">
+              <Link href="/">
+                  <Home className="h-[1.2rem] w-[1.2rem]" />
+              </Link>
+            </Button>
             <ModeToggle />
-            <span className="text-sm font-medium text-foreground hidden md:block">
-              {session?.user?.name}
-            </span>
-            <Avatar>
-              <AvatarImage src={session?.user?.image || ""} />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
+            <UserNav user={session?.user} />
           </div>
         </div>
-
+              
         {/* ACTIONS */}
         <div className="flex gap-4">
           <Dialog>

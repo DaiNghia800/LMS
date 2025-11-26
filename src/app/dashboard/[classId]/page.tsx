@@ -2,22 +2,21 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
-import { CreateAssignmentForm } from "@/components/create-assignment-form";
-import { SubmitAssignmentForm } from "@/components/submit-assignment-form";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; 
-
+import { Badge } from "@/components/ui/badge";
+import { CreateAssignmentButton } from "@/components/create-assignment-button";
+import { SubmitAssignmentForm } from "@/components/submit-assignment-form";
+import { BackButton } from "@/components/back-button";
 interface ClassDetailPageProps {
   params: Promise<{
     classId: string;
@@ -29,6 +28,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
   if (!session) redirect("/");
 
   const { classId } = await params;
+  const currentUserId = (session.user as any).id;
 
   const classDetail = await prisma.class.findUnique({
     where: { id: classId },
@@ -36,10 +36,15 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
       teacher: true,
       assignments: {
         orderBy: { createdAt: "desc" },
+        // 👇 QUAN TRỌNG: Lấy thêm thông tin để phân loại bài tập và trạng thái nộp
         include: {
-          _count: {
-              select: { questions: true } 
-          }
+            _count: {
+                select: { questions: true } 
+            },
+            submissions: {
+                where: { studentId: currentUserId },
+                take: 1
+            }
         }
       },
       _count: {
@@ -50,12 +55,15 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
 
   if (!classDetail) return <div className="p-8">Class not found.</div>;
 
-  const isTeacher = classDetail.teacherId === (session.user as any).id;
+  const isTeacher = classDetail.teacherId === currentUserId;
 
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        
+        <div className="mb-2">
+          <BackButton href="/dashboard" label="Back to Dashboard" />
+        </div>
+
         {/* HEADER */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
           <div className="flex justify-between items-start">
@@ -81,20 +89,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
             
             {/* If Teacher, show Create Assignment Button */}
             {isTeacher && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>+ New Assignment</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Assignment</DialogTitle>
-                    <DialogDescription>
-                      Add a new task for your students.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateAssignmentForm classId={classId} />
-                </DialogContent>
-              </Dialog>
+               <CreateAssignmentButton classId={classId} />
             )}
           </div>
         </div>
@@ -107,73 +102,83 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
               <p className="text-muted-foreground">No assignments posted yet.</p>
             </div>
           ) : (
-            classDetail.assignments.map((assignment) => (
-              <Card key={assignment.id} className="hover:shadow-md transition bg-card">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-xl text-primary">
-                      {assignment.title}
-                    </CardTitle>
-                    {assignment.dueDate && (
-                      <Badge variant={new Date(assignment.dueDate) < new Date() ? "destructive" : "outline"}>
-                        Due: {format(new Date(assignment.dueDate), "PPP")}
-                      </Badge>
+            classDetail.assignments.map((assignment) => {
+              // Kiểm tra xem học sinh đã nộp bài chưa
+              const mySubmission = assignment.submissions[0];
+              const isSubmitted = !!mySubmission;
+              
+              return (
+                <Card key={assignment.id} className="hover:shadow-md transition bg-card border-border">
+                    <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <CardTitle className="text-xl text-primary">
+                        {assignment.title}
+                        </CardTitle>
+                        {assignment.dueDate && (
+                        <Badge variant={new Date(assignment.dueDate) < new Date() ? "destructive" : "outline"}>
+                            Due: {format(new Date(assignment.dueDate), "PPP")}
+                        </Badge>
+                        )}
+                    </div>
+                    </CardHeader>
+                    
+                    <CardContent>
+                    {/* 1. Nội dung bài tập */}
+                    <p className="text-muted-foreground line-clamp-2 mb-4">
+                        {assignment.content || "No instructions provided."}
+                    </p>
+
+                    {/* 2. File đính kèm (nếu giáo viên có up) */}
+                    {assignment.fileUrl && (
+                        <a 
+                            href={assignment.fileUrl} 
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-primary hover:underline mb-4 bg-muted/30 p-2 rounded border border-border w-fit"
+                        >
+                            📄 Attached File (Click to open)
+                        </a>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* 1. Nội dung bài tập */}
-                  <p className="text-muted-foreground line-clamp-2 mb-4">
-                    {assignment.content || "No instructions provided."}
-                  </p>
 
-                  {/* 2. File đính kèm (nếu có) */}
-                  {assignment.fileUrl && (
-                    <a 
-                        href={assignment.fileUrl} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-primary hover:underline mb-4 bg-muted/30 p-2 rounded border border-border w-fit"
-                    >
-                        📄 Attached File (Click to open)
-                    </a>
-                  )}
-
-                  {/* 3. KHU VỰC NÚT BẤM (QUAN TRỌNG) */}
-                  <div className="flex justify-end gap-2 pt-2">
-                    {isTeacher ? (
-                      /* GIAO DIỆN GIÁO VIÊN (2 Nút riêng biệt) */
-                      <>
-                        {/* Nút 1: Soạn câu hỏi */}
-                        <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                          <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=questions`}>
-                            Edit Questions ✏️
-                          </Link>
-                        </Button>
-
-                        {/* Nút 2: Chấm bài */}
-                        <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                          <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=submissions`}>
-                            View Submissions 📝
-                          </Link>
-                        </Button>
-                      </>
-                    ) : (
-                        /* GIAO DIỆN HỌC SINH */
+                    {/* 3. KHU VỰC NÚT BẤM (QUAN TRỌNG) */}
+                    <div className="flex justify-end gap-2 pt-2">
+                        {isTeacher ? (
+                        /* --- GIAO DIỆN GIÁO VIÊN --- */
+                        <>
+                            <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
+                                <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=questions`}>
+                                    Edit Questions ✏️
+                                </Link>
+                            </Button>
+                            <Button asChild variant="secondary" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=submissions`}>
+                                    View Submissions 📝
+                                </Link>
+                            </Button>
+                        </>
+                        ) : (
+                        /* --- GIAO DIỆN HỌC SINH --- */
                         <>
                             {/* Trường hợp A: Bài tập TRẮC NGHIỆM/TỰ LUẬN (Quiz) */}
                             {assignment._count.questions > 0 ? (
-                                <Button asChild size="sm" className="bg-primary text-primary-foreground hover:opacity-90">
+                                <Button 
+                                    asChild 
+                                    size="sm" 
+                                    className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
+                                >
                                     <Link href={`/dashboard/${classId}/assignments/${assignment.id}/take`}>
-                                        Start Quiz 📝
+                                        {isSubmitted ? "✅ View Result" : "Start Quiz 📝"}
                                     </Link>
                                 </Button>
                             ) : (
                                 /* Trường hợp B: Bài tập NỘP FILE (Essay Submission) */
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button size="sm" className="bg-primary text-primary-foreground hover:opacity-90">
-                                            Submit Work 📤
+                                        <Button 
+                                            size="sm" 
+                                            className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
+                                        >
+                                            {isSubmitted ? "✅ Edit Submission" : "Submit Work 📤"}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
@@ -181,19 +186,21 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
                                             <DialogTitle>Submit Assignment</DialogTitle>
                                             <DialogDescription>{assignment.title}</DialogDescription>
                                         </DialogHeader>
+                                        
                                         <SubmitAssignmentForm 
                                             assignmentId={assignment.id} 
-                                            // Note: Cần sửa query ở trên để lấy submissions[0] thì mới có defaultNote
+                                            defaultNote={mySubmission?.textResponse || ""}
                                         />
                                     </DialogContent>
                                 </Dialog>
                             )}
                         </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                        )}
+                    </div>
+                    </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
 

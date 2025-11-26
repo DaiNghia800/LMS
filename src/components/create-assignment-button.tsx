@@ -19,7 +19,7 @@ export function CreateAssignmentButton({ classId }: { classId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md font-bold">
+        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md font-bold xs:mt-0 mt-3">
             <Plus className="w-4 h-4 mr-2" /> New Assignment
         </Button>
       </DialogTrigger>

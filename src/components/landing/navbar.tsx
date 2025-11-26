@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth, signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { UserNav } from "@/components/user-nav";
 export async function LandingNavbar() {
   const session = await auth();
 
@@ -32,10 +32,11 @@ export async function LandingNavbar() {
                    Go to Dashboard
                 </Button>
              </Link>
-             <Avatar className="h-8 w-8 border border-[#D9CCAC]/50">
+             {/* <Avatar className="h-8 w-8 border border-[#D9CCAC]/50">
                 <AvatarImage src={session.user?.image || ""} />
                 <AvatarFallback>U</AvatarFallback>
-             </Avatar>
+             </Avatar> */}
+             <UserNav user={session?.user} />
           </div>
         ) : (
           <form

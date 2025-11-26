@@ -58,7 +58,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
   const isTeacher = classDetail.teacherId === currentUserId;
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-background xs:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="mb-2">
           <BackButton href="/dashboard" label="Back to Dashboard" />
@@ -66,7 +66,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
 
         {/* HEADER */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          <div className="flex justify-between items-start">
+          <div className="flex xs:flex-nowrap flex-wrap xs:justify-between xs:items-start justify-center items-center xs:text-left text-center">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">
                 {classDetail.name}
@@ -74,14 +74,14 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
               <p className="text-muted-foreground text-lg mb-4">
                 {classDetail.description}
               </p>
-              <div className="flex items-center gap-3 text-sm">
-                <Badge variant="secondary" className="px-3 py-1">
+              <div className="xs:flex items-center text-center gap-3 text-sm">
+                <Badge variant="secondary" className="px-3 py-1 xs:mt-0 mt-2">
                   Teacher: {classDetail.teacher.name}
                 </Badge>
-                <Badge variant="outline" className="px-3 py-1 font-mono">
+                <Badge variant="outline" className="px-3 py-1 font-mono xs:mt-0 mt-2 flex w-full xs:w-auto">
                   Code: {classDetail.inviteCode}
                 </Badge>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground xs:mt-0 mt-2 xs:inline-flex block">
                   {classDetail._count.members} Students
                 </span>
               </div>
@@ -167,7 +167,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
                                     className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
                                 >
                                     <Link href={`/dashboard/${classId}/assignments/${assignment.id}/take`}>
-                                        {isSubmitted ? "✅ View Result" : "Start Quiz 📝"}
+                                        {isSubmitted ? "View Result" : "Start Quiz 📝"}
                                     </Link>
                                 </Button>
                             ) : (
@@ -178,7 +178,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
                                             size="sm" 
                                             className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
                                         >
-                                            {isSubmitted ? "✅ Edit Submission" : "Submit Work 📤"}
+                                            {isSubmitted ? "Edit Submission" : "Submit Work 📤"}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>

@@ -1,6 +1,7 @@
+"use client"
 import { ArrowRight, BookOpen, Trophy } from 'lucide-react';
 import Link from 'next/link';
-
+import { TypeAnimation } from 'react-type-animation';
 export const Hero = () => (
   <section className="relative xs:pt-40 pt-32 pb-20 px-6 overflow-hidden">
     {/* Background Glow Effect */}
@@ -16,7 +17,19 @@ export const Hero = () => (
       </div>
 
       <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight mb-6">
-        Master Your Skills <br />
+        <TypeAnimation
+            sequence={[
+              'Master Your Skills',
+              2000,
+              '',
+              400
+            ]}
+            wrapper="span"
+            speed={50}
+            repeat={Infinity}
+            cursor={true}
+          />
+        <br />
         <span className="bg-gradient-to-r from-[#D9CCAC] via-[#43602A] to-[#D9CCAC] text-transparent bg-clip-text bg-[length:200%_auto] animate-gradient">
           Earn Your Future
         </span>

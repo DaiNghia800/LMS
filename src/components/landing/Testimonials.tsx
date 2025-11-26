@@ -1,4 +1,21 @@
+"use client"
 import { Star } from 'lucide-react';
+import CountUp from 'react-countup';
+import { useInView } from 'react-intersection-observer';
+
+const AnimatedNumber = ({ end, suffix = "" }: { end: number, suffix?: string }) => {
+  const { ref, inView } = useInView({
+    triggerOnce: true, // Chỉ chạy 1 lần khi lướt tới
+    threshold: 0.4,
+  });
+
+  return (
+    <span ref={ref} className="">
+      {inView ? <CountUp end={end} duration={2.5} separator="," /> : 0}
+      {suffix}
+    </span>
+  );
+};
 export const Testimonials = () => (
   <section id="reviews" className="py-20 px-6 relative">
     <div className="max-w-7xl mx-auto">
@@ -7,15 +24,15 @@ export const Testimonials = () => (
         <div className="w-full md:w-1/2">
           <h2 className="text-4xl font-bold text-white mb-6">
             Trusted by  <br/>
-            <span className="text-[#D9CCAC]">10,000+ learners</span>
+            <span className="text-[#D9CCAC]"><AnimatedNumber end={10000} suffix="+" />learners</span>
           </h2>
           <div className="grid grid-cols-2 gap-6 mt-8">
             <div className="p-6 rounded-2xl bg-[#0f1a10] border border-[#ffffff]/5">
-              <p className="text-3xl font-bold text-white">98%</p>
+              <p className="text-3xl font-bold text-white"><AnimatedNumber end={98} suffix="%" /></p>
               <p className="text-sm text-gray-400 mt-1">Absolute satisfaction</p>
             </div>
             <div className="p-6 rounded-2xl bg-[#0f1a10] border border-[#ffffff]/5">
-              <p className="text-3xl font-bold text-white">50+</p>
+              <p className="text-3xl font-bold text-white"><AnimatedNumber end={50} suffix="+" /></p>
               <p className="text-sm text-gray-400 mt-1">Corporate partners</p>
             </div>
           </div>

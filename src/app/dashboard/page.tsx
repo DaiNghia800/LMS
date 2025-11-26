@@ -27,6 +27,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import React from "react";
 import { UserNav } from "@/components/user-nav";
 import { Home } from "lucide-react";
+import { DashboardChart } from "@/components/dashboard-chart";
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/");
@@ -47,8 +48,25 @@ export default async function DashboardPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const teachingClassesWithCounts = await prisma.class.findMany({
+    where: { teacherId: (session.user as any).id },
+    include: {
+        _count: {
+            select: { assignments: true } // Đếm số bài tập
+        }
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5 
+  });
+
+  // Format dữ liệu cho Recharts
+  const chartData = teachingClassesWithCounts.map(cls => ({
+      name: cls.name,
+      submissions: cls._count.assignments 
+  }));
+
   return (
-    <div className="min-h-screen bg-background p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-background xs:p-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* HEADER */}
         <div className="flex justify-between items-center">
@@ -56,17 +74,49 @@ export default async function DashboardPage() {
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Manage your learning journey.</p>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild title="Back to Home">
-              <Link href="/">
-                  <Home className="h-[1.2rem] w-[1.2rem]" />
-              </Link>
-            </Button>
-            <ModeToggle />
-            <UserNav user={session?.user} />
-          </div>
         </div>
+        {chartData.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
+                
+                {/* 1. CỘT TRÁI: BIỂU ĐỒ (Chiếm 4/7 chiều rộng) */}
+                <div className="lg:col-span-4">
+                    <DashboardChart data={chartData} />
+                </div>
+                
+                {/* 2. CỘT PHẢI: THẺ THỐNG KÊ (Chiếm 3/7 chiều rộng) */}
+                <div className="lg:col-span-3 flex flex-col gap-6">
+                    
+                    {/* Thẻ 1: Total Classes */}
+                    <div className="flex-1 bg-primary/10 p-6 rounded-xl border border-primary/20 flex flex-col justify-center shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary text-white rounded-full">
+                                {/* Icon Sách */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-medium text-primary">Total Classes</h3>
+                                <p className="text-4xl font-bold text-foreground">{teachingClasses.length}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Thẻ 2: Enrolled Courses */}
+                    <div className="flex-1 bg-secondary/50 p-6 rounded-xl border border-secondary flex flex-col justify-center shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-secondary text-secondary-foreground rounded-full">
+                                {/* Icon Người dùng */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-medium text-foreground">Enrolled Courses</h3>
+                                <p className="text-4xl font-bold text-foreground">{enrolledClasses.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        )}
               
         {/* ACTIONS */}
         <div className="flex gap-4">

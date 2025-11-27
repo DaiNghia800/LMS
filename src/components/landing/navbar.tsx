@@ -36,7 +36,7 @@ export async function LandingNavbar() {
                 <AvatarImage src={session.user?.image || ""} />
                 <AvatarFallback>U</AvatarFallback>
              </Avatar> */}
-             <div className="xs:block hidden">
+             <div className="xs:flex hidden">
                 <UserNav user={session?.user}/>
              </div>
           </div>

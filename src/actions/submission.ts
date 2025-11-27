@@ -7,7 +7,11 @@ import { revalidatePath } from "next/cache";
 export async function submitAssignment(formData: FormData) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    // 👇 FIX LỖI ĐỎ: Lấy ID ra biến riêng ngay từ đầu
+    const currentUserId = (session?.user as any)?.id;
+    const currentUserName = session?.user?.name || "Student";
+
+    if (!currentUserId) {
         return { error: "Not authenticated" };
     }
 
@@ -19,56 +23,67 @@ export async function submitAssignment(formData: FormData) {
       return { error: "File is required to submit." };
     }
 
-    // 1. Kiểm tra xem đã nộp chưa (Upsert Logic)
+    // 1. Lấy thông tin bài tập để biết ai là Giáo viên
+    const assignment = await prisma.assignment.findUnique({
+        where: { id: assignmentId },
+        include: { class: true } 
+    });
+
+    if (!assignment) return { error: "Assignment not found" };
+
+    // 2. Kiểm tra xem đã nộp chưa (Upsert)
     const existingSubmission = await prisma.submission.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: assignmentId,
-          studentId: session.user.id,
+          studentId: currentUserId, // Dùng biến này thay vì session.user.id
         },
       },
-      include: { assignment: true } // Lấy thêm thông tin bài tập để biết classId
     });
 
-    let classId = "";
+    let submissionId = "";
 
     if (existingSubmission) {
-      // 2a. Update bài cũ
-      classId = existingSubmission.assignment.classId;
-      
-      await prisma.submission.update({
+      // Update
+      const updated = await prisma.submission.update({
         where: { id: existingSubmission.id },
         data: {
           fileUrl,
           textResponse: note,
           submittedAt: new Date(),
-          // Nếu nộp lại file thì xóa điểm cũ đi (để giáo viên chấm lại)
-          grade: null, 
+          grade: null, // Reset điểm nếu nộp lại
           feedback: null
         },
       });
+      submissionId = updated.id;
     } else {
-      // 2b. Tạo bài nộp mới
-      // Phải query assignment để lấy classId cho việc revalidate
-      const assignment = await prisma.assignment.findUnique({
-          where: { id: assignmentId }
-      });
-      
-      if (!assignment) return { error: "Assignment not found" };
-      classId = assignment.classId;
-
-      await prisma.submission.create({
+      // Create
+      const created = await prisma.submission.create({
         data: {
           assignmentId,
-          studentId: session.user.id,
+          studentId: currentUserId,
           fileUrl,
           textResponse: note,
         },
       });
+      submissionId = created.id;
     }
 
-    // 3. Refresh đúng trang Dashboard của lớp đó
-    revalidatePath(`/dashboard/${classId}`);
+    // 3. 👇 TẠO THÔNG BÁO CHO GIÁO VIÊN
+    // (Chỉ thông báo nếu người nộp không phải là giáo viên tự test)
+    if (assignment.class.teacherId !== currentUserId) {
+        await prisma.notification.create({
+            data: {
+                userId: assignment.class.teacherId, // Gửi cho thầy
+                message: `${currentUserName} submitted file for "${assignment.title}"`,
+                // Link dẫn thẳng tới trang chấm bài
+                link: `/dashboard/${assignment.classId}/assignments/${assignmentId}/submissions/${submissionId}`,
+                isRead: false
+            }
+        });
+    }
+
+    revalidatePath(`/dashboard/${assignment.classId}`);
     
     return { success: true };
   } catch (error) {

@@ -68,7 +68,7 @@ export default async function SubmissionGraderPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-0 xs:p-4 md:p-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
         
         {/* HEADER */}

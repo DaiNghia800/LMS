@@ -16,7 +16,7 @@ export const Hero = () => (
         Next-generation learning system
       </div>
 
-      <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight mb-6">
+      <h1 className="text-4xl xs:text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight mb-6">
         <TypeAnimation
             sequence={[
               'Master Your Skills',

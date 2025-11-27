@@ -5,14 +5,15 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
-
+import { NotificationBell } from "@/components/notification-bell";
+import { getNotifications } from "@/actions/notification";
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await auth();
-
+  const notifications = await getNotifications();
   return (
     <div className="flex min-h-screen flex-col space-y-6 bg-background/50">
       {/* HEADER CỐ ĐỊNH Ở TRÊN CÙNG */}
@@ -27,6 +28,7 @@ export default async function DashboardLayout({
                 <Button variant="ghost" size="icon" asChild title="Go Home">
                     <Link href="/"><Home className="w-5 h-5"/></Link>
                 </Button>
+                <NotificationBell initialNotifications={notifications} />
                 <ModeToggle />
                 <UserNav user={session?.user} />
             </div>

@@ -14,29 +14,37 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; 
+
+// Import các Component con
 import { CreateAssignmentButton } from "@/components/create-assignment-button";
 import { SubmitAssignmentForm } from "@/components/submit-assignment-form";
 import { BackButton } from "@/components/back-button";
+import { CreatePostForm } from "@/components/stream/create-post-form";
+import { StreamFeed } from "@/components/stream/stream-feed";
+import { ScrollToHash } from "@/components/scroll-to-hash";
+
 interface ClassDetailPageProps {
   params: Promise<{
     classId: string;
   }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function ClassDetailPage({ params }: ClassDetailPageProps) {
+export default async function ClassDetailPage({ params, searchParams }: ClassDetailPageProps) {
   const session = await auth();
   if (!session) redirect("/");
 
   const { classId } = await params;
   const currentUserId = (session.user as any).id;
 
+  // 1. FETCH DỮ LIỆU LỚP HỌC & BÀI TẬP
   const classDetail = await prisma.class.findUnique({
     where: { id: classId },
     include: {
       teacher: true,
       assignments: {
         orderBy: { createdAt: "desc" },
-        // 👇 QUAN TRỌNG: Lấy thêm thông tin để phân loại bài tập và trạng thái nộp
         include: {
             _count: {
                 select: { questions: true } 
@@ -55,34 +63,58 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
 
   if (!classDetail) return <div className="p-8">Class not found.</div>;
 
+  // 2. FETCH DỮ LIỆU BẢNG TIN (STREAM)
+  const posts = await prisma.post.findMany({
+    where: { classId: classId },
+    include: {
+      author: { select: { id: true, name: true, image: true } },
+      comments: {
+        include: { author: { select: { name: true, image: true } } },
+        orderBy: { createdAt: "asc" }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
   const isTeacher = classDetail.teacherId === currentUserId;
 
+  // 👇 Lấy tab từ URL
+  const searchParamsResolved = await searchParams;
+  const tab = searchParamsResolved?.tab as string | undefined;
+  
+  // Nếu URL có tab=stream thì active tab stream, mặc định là classwork
+  const activeTab = tab === "stream" ? "stream" : "classwork";
+
   return (
-    <div className="min-h-screen bg-background xs:p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background p-4 md:p-8 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* BACK BUTTON */}
         <div className="mb-2">
           <BackButton href="/dashboard" label="Back to Dashboard" />
         </div>
 
-        {/* HEADER */}
-        <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          <div className="flex xs:flex-nowrap flex-wrap xs:justify-between xs:items-start justify-center items-center xs:text-left text-center">
+        {/* HEADER LỚP HỌC */}
+        <div className="bg-card border border-border rounded-xl p-8 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary/40 to-primary"></div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">
                 {classDetail.name}
               </h1>
               <p className="text-muted-foreground text-lg mb-4">
-                {classDetail.description}
+                {classDetail.description || "No description provided."}
               </p>
-              <div className="xs:flex items-center text-center gap-3 text-sm">
-                <Badge variant="secondary" className="px-3 py-1 xs:mt-0 mt-2">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <Badge variant="secondary" className="px-3 py-1">
                   Teacher: {classDetail.teacher.name}
                 </Badge>
-                <Badge variant="outline" className="px-3 py-1 font-mono xs:mt-0 mt-2 flex w-full xs:w-auto">
+                <Badge variant="outline" className="px-3 py-1 font-mono">
                   Code: {classDetail.inviteCode}
                 </Badge>
-                <span className="text-muted-foreground xs:mt-0 mt-2 xs:inline-flex block">
-                  {classDetail._count.members} Students
+                <span className="text-muted-foreground flex items-center gap-1">
+                   👥 {classDetail._count.members} Students
                 </span>
               </div>
             </div>
@@ -94,116 +126,127 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
           </div>
         </div>
 
-        {/* ASSIGNMENTS LIST */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-foreground">Assignments</h2>
-          {classDetail.assignments.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-border rounded-xl">
-              <p className="text-muted-foreground">No assignments posted yet.</p>
-            </div>
-          ) : (
-            classDetail.assignments.map((assignment) => {
-              // Kiểm tra xem học sinh đã nộp bài chưa
-              const mySubmission = assignment.submissions[0];
-              const isSubmitted = !!mySubmission;
-              
-              return (
-                <Card key={assignment.id} className="hover:shadow-md transition bg-card border-border">
-                    <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl text-primary">
-                        {assignment.title}
-                        </CardTitle>
-                        {assignment.dueDate && (
-                        <Badge variant={new Date(assignment.dueDate) < new Date() ? "destructive" : "outline"}>
-                            Due: {format(new Date(assignment.dueDate), "PPP")}
-                        </Badge>
-                        )}
-                    </div>
-                    </CardHeader>
+        {/* NỘI DUNG CHÍNH: TABS STREAM & CLASSWORK */}
+        {/* 👇 ĐÃ THÊM key={activeTab} ĐỂ RESET TAB KHI URL ĐỔI */}
+        <Tabs defaultValue={activeTab} key={activeTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+                <TabsTrigger value="classwork">📚 Classwork</TabsTrigger>
+                <TabsTrigger value="stream">📢 Stream</TabsTrigger>
+            </TabsList>
+
+            {/* TAB 1: CLASSWORK (DANH SÁCH BÀI TẬP) */}
+            <TabsContent value="classwork">
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-foreground mb-4">Assignments</h2>
                     
-                    <CardContent>
-                    {/* 1. Nội dung bài tập */}
-                    <p className="text-muted-foreground line-clamp-2 mb-4">
-                        {assignment.content || "No instructions provided."}
-                    </p>
+                    {classDetail.assignments.length === 0 ? (
+                        <div className="text-center py-16 border-2 border-dashed border-muted/30 rounded-xl bg-muted/5">
+                            <p className="text-muted-foreground font-medium">No assignments posted yet.</p>
+                            <p className="text-sm text-muted-foreground/70">Check back later!</p>
+                        </div>
+                    ) : (
+                        classDetail.assignments.map((assignment) => {
+                            const mySubmission = assignment.submissions[0];
+                            const isSubmitted = !!mySubmission;
+                            
+                            return (
+                                <Card key={assignment.id} className="hover:shadow-md transition-all bg-card border-border group">
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <CardTitle className="text-xl text-primary group-hover:text-primary/80 transition-colors">
+                                                {assignment.title}
+                                            </CardTitle>
+                                            {assignment.dueDate && (
+                                                <Badge variant={new Date(assignment.dueDate) < new Date() ? "destructive" : "outline"}>
+                                                    Due: {format(new Date(assignment.dueDate), "MMM dd")}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    
+                                    <CardContent>
+                                        <p className="text-muted-foreground line-clamp-2 mb-4 text-sm">
+                                            {assignment.content || "No instructions provided."}
+                                        </p>
 
-                    {/* 2. File đính kèm (nếu giáo viên có up) */}
-                    {assignment.fileUrl && (
-                        <a 
-                            href={assignment.fileUrl} 
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary hover:underline mb-4 bg-muted/30 p-2 rounded border border-border w-fit"
-                        >
-                            📄 Attached File (Click to open)
-                        </a>
+                                        {assignment.fileUrl && (
+                                            <a 
+                                                href={assignment.fileUrl} 
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-xs text-primary hover:underline mb-4 bg-primary/5 p-2 rounded border border-primary/10 w-fit"
+                                            >
+                                                📄 Attached File
+                                            </a>
+                                        )}
+
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-border/50 mt-2">
+                                            {isTeacher ? (
+                                                <>
+                                                    <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10 h-8">
+                                                        <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=questions`}>
+                                                            Edit Questions ✏️
+                                                        </Link>
+                                                    </Button>
+                                                    <Button asChild variant="secondary" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8">
+                                                        <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=submissions`}>
+                                                            View Submissions 📝
+                                                        </Link>
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {assignment._count.questions > 0 ? (
+                                                        <Button 
+                                                            asChild 
+                                                            size="sm" 
+                                                            className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
+                                                        >
+                                                            <Link href={`/dashboard/${classId}/assignments/${assignment.id}/take`}>
+                                                                {isSubmitted ? "View Result" : "Start Quiz 📝"}
+                                                            </Link>
+                                                        </Button>
+                                                    ) : (
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
+                                                                >
+                                                                    {isSubmitted ? "Edit Submission" : "Submit Work 📤"}
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent>
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Submit Assignment</DialogTitle>
+                                                                    <DialogDescription>{assignment.title}</DialogDescription>
+                                                                </DialogHeader>
+                                                                <SubmitAssignmentForm 
+                                                                    assignmentId={assignment.id} 
+                                                                    defaultNote={mySubmission?.textResponse || ""}
+                                                                />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })
                     )}
+                </div>
+            </TabsContent>
 
-                    {/* 3. KHU VỰC NÚT BẤM (QUAN TRỌNG) */}
-                    <div className="flex justify-end gap-2 pt-2">
-                        {isTeacher ? (
-                        /* --- GIAO DIỆN GIÁO VIÊN --- */
-                        <>
-                            <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                                <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=questions`}>
-                                    Edit Questions ✏️
-                                </Link>
-                            </Button>
-                            <Button asChild variant="secondary" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                                <Link href={`/dashboard/${classId}/assignments/${assignment.id}?tab=submissions`}>
-                                    View Submissions 📝
-                                </Link>
-                            </Button>
-                        </>
-                        ) : (
-                        /* --- GIAO DIỆN HỌC SINH --- */
-                        <>
-                            {/* Trường hợp A: Bài tập TRẮC NGHIỆM/TỰ LUẬN (Quiz) */}
-                            {assignment._count.questions > 0 ? (
-                                <Button 
-                                    asChild 
-                                    size="sm" 
-                                    className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
-                                >
-                                    <Link href={`/dashboard/${classId}/assignments/${assignment.id}/take`}>
-                                        {isSubmitted ? "View Result" : "Start Quiz 📝"}
-                                    </Link>
-                                </Button>
-                            ) : (
-                                /* Trường hợp B: Bài tập NỘP FILE (Essay Submission) */
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button 
-                                            size="sm" 
-                                            className={isSubmitted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary text-primary-foreground hover:opacity-90"}
-                                        >
-                                            {isSubmitted ? "Edit Submission" : "Submit Work 📤"}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Submit Assignment</DialogTitle>
-                                            <DialogDescription>{assignment.title}</DialogDescription>
-                                        </DialogHeader>
-                                        
-                                        <SubmitAssignmentForm 
-                                            assignmentId={assignment.id} 
-                                            defaultNote={mySubmission?.textResponse || ""}
-                                        />
-                                    </DialogContent>
-                                </Dialog>
-                            )}
-                        </>
-                        )}
-                    </div>
-                    </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+            {/* TAB 2: STREAM (BẢNG TIN) */}
+            <TabsContent value="stream" className="space-y-6 max-w-7xl">
+                <ScrollToHash /> 
+                <CreatePostForm classId={classId} userImage={session?.user?.image || null} />
+                <StreamFeed posts={posts} classId={classId} currentUserId={currentUserId} currentUserImage={session?.user?.image || null} />
+            </TabsContent>
 
+        </Tabs>
       </div>
     </div>
   );

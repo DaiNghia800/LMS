@@ -17,11 +17,11 @@ model User {
   emailVerified DateTime?
   image         String?
   role          UserRole  @default(STUDENT) // Mặc định là học sinh
-  
+  notifications Notification[]
   // Dành cho NextAuth (Google Login)
   accounts      Account[]
   sessions      Session[]
-
+  posts       Post[]    
   // Quan hệ nghiệp vụ
   createdClasses Class[]       @relation("TeacherClasses") 
   enrollments    Enrollment[]  
@@ -83,7 +83,7 @@ model Class {
   
   teacherId   String
   teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
-
+  posts       Post[]
   members     Enrollment[] 
   assignments Assignment[] 
 
@@ -176,19 +176,7 @@ model Submission {
   @@unique([assignmentId, studentId]) 
 }
 
-// 7. Bảng Comment
-model Comment {
-  id           String   @id @default(cuid())
-  content      String
-  
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  
-  assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-}
 
 model Answer {
   id           String   @id @default(cuid())
@@ -203,4 +191,51 @@ model Answer {
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   
   createdAt    DateTime @default(now())
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  comments  Comment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  
+  authorId  String   // Đổi tên từ userId thành authorId cho thống nhất với Post (hoặc giữ userId cũng được nhưng phải sửa relation)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Quan hệ với Bài tập (Optional)
+  assignmentId String? 
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  // Quan hệ với Bài đăng (Optional) - Mới thêm
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  
+  userId    String   // Người nhận thông báo
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  message   String   // Nội dung: "Thầy A vừa đăng bài..."
+  link      String   // Link để bấm vào: "/dashboard/class-id?tab=stream"
+  isRead    Boolean  @default(false) // Đã đọc hay chưa
+  
+  createdAt DateTime @default(now())
 }

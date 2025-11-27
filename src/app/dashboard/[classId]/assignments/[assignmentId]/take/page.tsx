@@ -45,7 +45,7 @@ export default async function TakeQuizPage({ params }: Props) {
   const score = submission?.grade !== null ? submission?.grade : "Pending";
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-background xs:p-4 md:p-8 transition-colors duration-300">
       <div className="max-w-3xl mx-auto space-y-6">
         
         {/* HEADER: Nút quay lại */}

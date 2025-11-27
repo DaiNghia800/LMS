@@ -53,17 +53,17 @@ export default async function AssignmentBuilderPage({ params, searchParams }: Pr
   const defaultTab = tab === "submissions" ? "submissions" : "questions";
 
   return (
-    <div className="min-h-screen bg-background p-8 pb-32">
+    <div className="min-h-screen bg-background xs:p-8 pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* HEADER */}
-        <div className="flex justify-between items-center pb-4 border-b">
+        <div className="flex xs:flex-nowrap flex-wrap justify-center xs:justify-between items-center pb-4 border-b">
             <Link href={`/dashboard/${classId}`}>
                 <Button variant="outline" size="sm" className="text-muted-foreground">
                     ← Back to {assignmentDetail.class.name}
                 </Button>
             </Link>
-            <div className="text-center">
+            <div className="text-center w-full xs:w-auto">
                 <h1 className="text-3xl font-bold text-foreground">
                     Manage: {assignmentDetail.title}
                 </h1>

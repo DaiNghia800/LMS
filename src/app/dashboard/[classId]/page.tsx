@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; 
-
+import { CopyButton } from "@/components/copy-button";
 // Import các Component con
 import { CreateAssignmentButton } from "@/components/create-assignment-button";
 import { SubmitAssignmentForm } from "@/components/submit-assignment-form";
@@ -86,7 +86,7 @@ export default async function ClassDetailPage({ params, searchParams }: ClassDet
   const activeTab = tab === "stream" ? "stream" : "classwork";
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-background xs:p-4 md:p-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* BACK BUTTON */}
@@ -111,7 +111,7 @@ export default async function ClassDetailPage({ params, searchParams }: ClassDet
                   Teacher: {classDetail.teacher.name}
                 </Badge>
                 <Badge variant="outline" className="px-3 py-1 font-mono">
-                  Code: {classDetail.inviteCode}
+                  Code: <CopyButton code={classDetail.inviteCode} />
                 </Badge>
                 <span className="text-muted-foreground flex items-center gap-1">
                    👥 {classDetail._count.members} Students

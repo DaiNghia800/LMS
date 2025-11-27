@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CopyButton } from "@/components/copy-button";
 import {
   Card,
   CardDescription,
@@ -188,9 +189,10 @@ export default async function DashboardPage() {
                       <div className="flex justify-between items-start">
                         {/* Tiêu đề dùng màu chính (Primary - Xanh Rêu) */}
                         <CardTitle className="text-lg font-bold text-primary truncate">{cls.name}</CardTitle>
-                        <span className="text-xs font-mono bg-secondary text-secondary-foreground px-2 py-1 rounded border h-fit">
+                        {/* <span className="text-xs font-mono bg-secondary text-secondary-foreground px-2 py-1 rounded border h-fit">
                           {cls.inviteCode}
-                        </span>
+                        </span> */}
+                        <CopyButton code={cls.inviteCode} />
                       </div>
                       <CardDescription className="line-clamp-1">{cls.description}</CardDescription>
                     </CardHeader>

@@ -44,7 +44,7 @@ export default async function SubmissionListPage(props: SubmissionListPageProps)
   const gradedCount = assignmentData.submissions.filter(s => s.grade !== null).length;
 
   return (
-    <div className="min-h-screen bg-background p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-background p-0 xs:p-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* HEADER & BREADCRUMB */}

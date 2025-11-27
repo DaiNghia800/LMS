@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { CopyButton } from "@/components/copy-button";
 interface ClassListsProps {
   teachingClasses: any[];
   enrolledClasses: any[];
@@ -29,9 +29,10 @@ export function ClassLists({ teachingClasses, enrolledClasses }: ClassListsProps
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg font-bold text-primary truncate">{cls.name}</CardTitle>
-                    <span className="text-xs font-mono bg-secondary text-secondary-foreground px-2 py-1 rounded border h-fit">
+                    {/* <span className="text-xs font-mono bg-secondary text-secondary-foreground px-2 py-1 rounded border h-fit">
                       {cls.inviteCode}
-                    </span>
+                    </span> */}
+                    <CopyButton code={cls.inviteCode} />
                   </div>
                   <CardDescription className="line-clamp-1">{cls.description}</CardDescription>
                 </CardHeader>

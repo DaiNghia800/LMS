@@ -9,6 +9,19 @@ import { createComment, deletePost } from "@/actions/stream";
 import { toast } from "sonner";
 import { Trash2, MessageSquare, Send, Loader2 } from "lucide-react";
 
+// 👇 1. Import AlertDialog
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 interface PostWithAuthor {
     id: string;
     content: string;
@@ -22,7 +35,6 @@ interface PostWithAuthor {
     }[];
 }
 
-// Component Cha
 export function StreamFeed({ posts, classId, currentUserId, currentUserImage }: { posts: PostWithAuthor[], classId: string, currentUserId: string, currentUserImage?: string | null }) {
     return (
         <div className="space-y-6">
@@ -35,7 +47,7 @@ export function StreamFeed({ posts, classId, currentUserId, currentUserImage }: 
                         post={post} 
                         classId={classId} 
                         currentUserId={currentUserId} 
-                        currentUserImage={currentUserImage} // Truyền xuống con
+                        currentUserImage={currentUserImage}
                     />
                 ))
             )}
@@ -43,7 +55,6 @@ export function StreamFeed({ posts, classId, currentUserId, currentUserImage }: 
     );
 }
 
-// Component Con
 function PostItem({ post, classId, currentUserId, currentUserImage }: { post: PostWithAuthor, classId: string, currentUserId: string, currentUserImage?: string | null }) {
     const [commentText, setCommentText] = useState("");
     const [loading, setLoading] = useState(false);
@@ -64,11 +75,11 @@ function PostItem({ post, classId, currentUserId, currentUserImage }: { post: Po
         }
     };
 
+    // 👇 2. Hàm xóa (Bỏ confirm cũ đi, chỉ giữ logic xóa)
     const handleDelete = async () => {
-        if(!confirm("Delete this post?")) return;
         const res = await deletePost(post.id, classId);
         if(res.error) toast.error(res.error);
-        else toast.success("Deleted!");
+        else toast.success("Post deleted successfully!");
     }
 
     return (
@@ -84,10 +95,33 @@ function PostItem({ post, classId, currentUserId, currentUserImage }: { post: Po
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</p>
                     </div>
                 </div>
+
+                {/* 👇 3. Bọc nút xóa bằng AlertDialog */}
                 {post.author.id === currentUserId && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={handleDelete}>
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete your post and remove it from the class stream.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={handleDelete}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
             </div>
 
@@ -95,7 +129,7 @@ function PostItem({ post, classId, currentUserId, currentUserImage }: { post: Po
                 {post.content}
             </div>
             
-            <div className="border-t border-border pt-2">
+            <div className="border-t border-border pt-2 pl-[52px]">
                 <button 
                     className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 mb-3 transition-colors"
                     onClick={() => setShowComments(!showComments)}
@@ -132,7 +166,6 @@ function PostItem({ post, classId, currentUserId, currentUserImage }: { post: Po
                             onChange={(e) => setCommentText(e.target.value)}
                             className="h-9 pr-10 text-sm rounded-full bg-background focus-visible:ring-primary"
                         />
-                        {/* Nút gửi đã căn giữa icon */}
                         <button 
                             type="submit" 
                             disabled={loading || !commentText.trim()}
